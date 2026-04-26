@@ -14,3 +14,4 @@ numpy
 python-jose[cryptography]
 passlib[bcrypt]
 imageio-ffmpeg
+reportlab

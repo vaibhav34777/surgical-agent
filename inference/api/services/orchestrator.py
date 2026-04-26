@@ -3,11 +3,12 @@ import os
 import cv2
 import uuid
 import sys
+import time
 from core.config import settings
 from core.job_store import job_store
 from services.video_service import VideoService
 from services.seg_service import SegService
-from utils.video_utils import draw_outlines, create_action_clip
+from utils.video_utils import draw_outlines, draw_filled_masks, create_action_clip
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 from agent.core import get_clinical_insights
@@ -53,6 +54,37 @@ COLOR_LEGEND = """
 - Bright White: Hepatic Vein
 """
 
+def format_timestamp(frame_idx, fps):
+    if fps <= 0: fps = 25.0
+    sec = int(frame_idx / fps)
+    return f"{sec // 60:02d}:{sec % 60:02d}"
+
+def extract_and_save_3_frames(cap, seg_svc, start_f, end_f, job_id, fps):
+    mid_f = start_f + (end_f - start_f) // 2
+    frames_to_extract = [start_f, mid_f, end_f]
+    outlines = []
+    filled = []
+    timestamps = []
+    
+    for idx, f_idx in enumerate(frames_to_extract):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, f_idx)
+        ret, frame = cap.read()
+        if ret:
+            mask = seg_svc.predict(frame)
+            out_img = draw_outlines(frame, mask)
+            fill_img = draw_filled_masks(frame, mask)
+            
+            out_path = os.path.join(settings.MEDIA_DIR, f"{job_id}_{f_idx}_out.png")
+            fill_path = os.path.join(settings.MEDIA_DIR, f"{job_id}_{f_idx}_fill.png")
+            cv2.imwrite(out_path, out_img)
+            cv2.imwrite(fill_path, fill_img)
+            
+            outlines.append(out_path)
+            filled.append(fill_path)
+            timestamps.append(format_timestamp(f_idx, fps))
+            
+    return outlines, filled, timestamps
+
 async def run_pipeline(job_id: str, video_path: str):
     queue = job_store.get_queue(job_id)
     cap = None
@@ -72,11 +104,17 @@ async def run_pipeline(job_id: str, video_path: str):
         
         for i in range(0, total_frames, 30):
             await asyncio.sleep(0.01)
+            t0 = time.time()
             cap.set(cv2.CAP_PROP_POS_FRAMES, i)
             ret, frame = cap.read()
             if not ret: break
             
             actions = await asyncio.to_thread(video_svc.predict_frame, frame)
+            rendezvous_ms = int((time.time() - t0) * 1000)
+            
+            progress = int((i / total_frames) * 100)
+            await queue.put({"event": "telemetry", "data": {"progress": progress, "rendezvous_ms": rendezvous_ms}})
+            
             if actions:
                 new_action = TRIPLET_DICT.get(actions[0], f"Action_{actions[0]}")
                 if new_action != current_action:
@@ -84,22 +122,38 @@ async def run_pipeline(job_id: str, video_path: str):
                         await queue.put({"event": "status", "data": f"Generating segmented video clip for {current_action}..."})
                         clip_name = f"{job_id}_{current_action}.mp4"
                         clip_path = os.path.join(settings.MEDIA_DIR, clip_name)
+                        
+                        t0 = time.time()
                         await asyncio.to_thread(create_action_clip, video_path, action_start_frame, i, seg_svc, clip_path)
+                        segformer_s = round((time.time() - t0) / max(1, i - action_start_frame), 3)
+                        await queue.put({"event": "telemetry", "data": {"segformer_s": segformer_s}})
                         
                         await queue.put({"event": "status", "data": f"Extracting clinical insights from Gemini for {current_action}..."})
-                        mask = await asyncio.to_thread(seg_svc.predict, frame)
-                        kf_path = os.path.join(settings.MEDIA_DIR, f"{job_id}_{i}.png")
-                        cv2.imwrite(kf_path, draw_outlines(frame, mask))
                         
-                        insights = await asyncio.to_thread(get_clinical_insights, kf_path, current_action, COLOR_LEGEND)
+                        outlines, filled, timestamps = await asyncio.to_thread(
+                            extract_and_save_3_frames, cap, seg_svc, action_start_frame, i-1, job_id, fps
+                        )
+                        
+                        t0 = time.time()
+                        insights = await asyncio.to_thread(get_clinical_insights, outlines, current_action, COLOR_LEGEND)
+                        gemini_s = round(time.time() - t0, 1)
+                        await queue.put({"event": "telemetry", "data": {"gemini_s": gemini_s}})
+                        
+                        result_data = {
+                            "action": current_action,
+                            "clip_url": f"/api/v1/media/{clip_name}",
+                            "insights": insights,
+                            "timestamp": timestamps[0],
+                            "keyframes_filled": filled,
+                            "keyframe_timestamps": timestamps,
+                            "clip_path": clip_path
+                        }
+                        
+                        job_store.save_action(job_id, result_data)
                         
                         await queue.put({
                             "event": "result",
-                            "data": {
-                                "action": current_action,
-                                "clip_url": f"/api/v1/media/{clip_name}",
-                                "insights": insights
-                            }
+                            "data": result_data
                         })
                     
                     current_action = new_action
