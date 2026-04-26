@@ -19,3 +19,5 @@ google-generativeai
 streamlit
 requests
 sseclient-py
+reportlab
+huggingface_hub

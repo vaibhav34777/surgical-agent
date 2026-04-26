@@ -11,6 +11,8 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - ../../.env
 
   frontend:
     build:
@@ -26,3 +28,5 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - INTERNAL_API_URL=http://api:8000
       - EXTERNAL_API_URL=http://localhost:8000
+    env_file:
+      - ../../.env
