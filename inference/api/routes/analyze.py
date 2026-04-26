@@ -1,5 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from typing import List, Any
 import uuid
 import os
 import sys
@@ -31,7 +33,20 @@ async def get_report(job_id: str):
     
     report_path = os.path.join(settings.MEDIA_DIR, f"{job_id}_report.pdf")
     global_summary = f"Automated Surgical Analysis for Job: {job_id}"
-    
     generate_surgical_report(report_path, global_summary, results)
-    
     return FileResponse(report_path, media_type="application/pdf", filename=f"Surgical_Report_{job_id}.pdf")
+
+class ReportRequest(BaseModel):
+    results: List[Any]
+
+@router.post("/generate-report")
+async def generate_report(body: ReportRequest):
+    if not body.results:
+        raise HTTPException(status_code=400, detail="No results provided")
+    
+    report_id = str(uuid.uuid4())
+    report_path = os.path.join(settings.MEDIA_DIR, f"{report_id}_report.pdf")
+    global_summary = "Automated Surgical Analysis Report"
+    
+    generate_surgical_report(report_path, global_summary, body.results)
+    return FileResponse(report_path, media_type="application/pdf", filename="Surgical_Report.pdf")
