@@ -1,0 +1,21 @@
+fastapi
+uvicorn
+python-multipart
+sse-starlette
+python-dotenv
+python-jose[cryptography]
+passlib[bcrypt]
+opencv-python-headless
+onnxruntime
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+transformers
+pillow
+numpy
+imageio
+imageio-ffmpeg
+google-generativeai
+streamlit
+requests
+sseclient-py

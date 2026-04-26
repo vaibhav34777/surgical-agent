@@ -2,6 +2,10 @@ import streamlit as st
 import requests
 import sseclient
 import json
+import os
+
+INTERNAL_API_URL = os.environ.get("INTERNAL_API_URL", "http://localhost:8000")
+EXTERNAL_API_URL = os.environ.get("EXTERNAL_API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="Surgical Agent", page_icon="🩺", layout="centered")
 
@@ -34,12 +38,12 @@ if uploaded_file and submit_button and not st.session_state.processing:
         status_placeholder.markdown("Uploading video...")
         
         files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
-        response = requests.post("http://localhost:8000/api/v1/analyze", files=files)
+        response = requests.post(f"{INTERNAL_API_URL}/api/v1/analyze", files=files)
         
         if response.status_code == 200:
             job_id = response.json()["job_id"]
             
-            stream_response = requests.get(f"http://localhost:8000/api/v1/stream/{job_id}", stream=True)
+            stream_response = requests.get(f"{INTERNAL_API_URL}/api/v1/stream/{job_id}", stream=True)
             client = sseclient.SSEClient(stream_response)
             
             for event in client.events():
@@ -49,7 +53,7 @@ if uploaded_file and submit_button and not st.session_state.processing:
                 elif event.event == "result":
                     data = json.loads(event.data)
                     action = data.get("action")
-                    clip_url = f"http://localhost:8000{data.get('clip_url')}"
+                    clip_url = f"{EXTERNAL_API_URL}{data.get('clip_url')}"
                     insights = data.get("insights")
                     
                     st.markdown(f"**Action:** {action}")

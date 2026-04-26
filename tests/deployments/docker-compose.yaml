@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../../
+      dockerfile: tests/deployments/Dockerfile
+    container_name: surgical_api
+    command: uvicorn inference.api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: tests/deployments/Dockerfile
+    container_name: surgical_frontend
+    command: streamlit run inference/frontend/app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - INTERNAL_API_URL=http://api:8000
+      - EXTERNAL_API_URL=http://localhost:8000
