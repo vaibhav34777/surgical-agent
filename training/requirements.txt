@@ -1,0 +1,9 @@
+torch
+torchvision
+transformers
+albumentations
+wandb
+numpy
+Pillow
+tqdm
+python-dotenv

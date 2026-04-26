@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+python-multipart
+sse-starlette
+opencv-python
+onnxruntime
+torch
+torchvision
+transformers
+pillow
+python-dotenv
+google-generativeai
+numpy
+python-jose[cryptography]
+passlib[bcrypt]
+imageio-ffmpeg
