@@ -1,4 +1,4 @@
-# Autonomous Surgical AI Agent 🩺
+# Autonomous Surgical AI Agent 
 
 An advanced, multimodal AI pipeline designed to autonomously analyze laparoscopic cholecystectomy surgeries. This agent performs real-time surgical action recognition, semantic segmentation of critical anatomy and tools, and leverages Vision-Language Models (VLMs) to generate professional clinical reports with temporal context.
 
