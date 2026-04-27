@@ -5,11 +5,11 @@ services:
       context: ../../
       dockerfile: tests/deployments/Dockerfile
     container_name: surgical_api
-    command: uvicorn inference.api.main:app --host 0.0.0.0 --port 8000
+    working_dir: /app/inference/api
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
     env_file:
       - ../../.env
 
@@ -24,7 +24,6 @@ services:
     depends_on:
       - api
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - INTERNAL_API_URL=http://api:8000
       - EXTERNAL_API_URL=http://localhost:8000
     env_file:

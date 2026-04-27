@@ -50,6 +50,8 @@ The application will spin up two containers:
 *   **Frontend (Streamlit):** [http://localhost:8501](http://localhost:8501)
 *   **Backend API (FastAPI):** `http://localhost:8000`
 
+> **Note:** On the very first run, the API container will automatically download the required ML models from Hugging Face. Depending on your connection, this may take a few moments. Please wait until the backend is fully initialized before starting an analysis.
+
 ---
 
 ## 💻 Local Development Setup (Without Docker)
