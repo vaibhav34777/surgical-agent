@@ -2,7 +2,7 @@
 
 An advanced, multimodal AI pipeline designed to autonomously analyze laparoscopic cholecystectomy surgeries. This agent performs real-time surgical action recognition, semantic segmentation of critical anatomy and tools, and leverages Vision-Language Models (VLMs) to generate professional clinical reports with temporal context.
 
-![Project Banner Placeholder](https://via.placeholder.com/1000x300?text=Surgical+AI+Agent)
+![Project Banner Placeholder](examples/sample.png)
 
 ## 🌟 Key Features
 
@@ -14,7 +14,7 @@ An advanced, multimodal AI pipeline designed to autonomously analyze laparoscopi
 *   **ONNX Runtime Quantization:** The heavy SegFormer model is converted to ONNX and statically quantized. This drastically reduces the memory footprint and accelerates CPU inference speeds, enabling the pipeline to run efficiently in lightweight Docker containers without requiring a GPU.
 *   **Live Telemetry Dashboard:** A sleek Streamlit interface providing real-time inference latencies across the PyTorch, ONNX, and API boundaries.
 
-## 🚀 Hosted Models (Hugging Face)
+## Hosted Models (Hugging Face)
 
 To make deployment seamless, all heavy model checkpoints have been moved out of the repository and are now hosted on the **Hugging Face Hub**. The application will automatically pull the necessary weights upon initialization, resulting in a lightweight codebase.
 
